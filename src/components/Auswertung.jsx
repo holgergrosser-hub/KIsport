@@ -4,7 +4,7 @@ import {
   Tooltip, ResponsiveContainer, CartesianGrid
 } from 'recharts';
 import { api } from '../api.js';
-import { TRAINING_TYPEN } from '../data.js';
+import { TRAINING_TYPEN, ALLE_UEBUNGEN } from '../data.js';
 
 const TYP_EMOJI = {
   kraft_uk: '💪', kraft_ok: '💪', ganzkoerper: '🔥',
@@ -19,6 +19,23 @@ function formatDatum(str) {
   if (!str) return '';
   const d = new Date(str);
   return `${d.getDate()}.${d.getMonth() + 1}.`;
+}
+
+const UEBUNG_META = Object.fromEntries(ALLE_UEBUNGEN.map(ueb => [ueb.id, ueb]));
+
+function getCardioMinuten(satz) {
+  const meta = UEBUNG_META[satz.uebung_id];
+
+  if (meta?.einheit === 'min') {
+    if (satz.dauer_sek) return Number(satz.dauer_sek) / 60;
+    return Number(satz.gewicht_kg) || 0;
+  }
+
+  if (meta?.einheit === 'sek') {
+    return satz.dauer_sek ? Number(satz.dauer_sek) / 60 : 0;
+  }
+
+  return 0;
 }
 
 export default function Auswertung() {
@@ -51,17 +68,17 @@ export default function Auswertung() {
 
   // ── Stats ────────────────────────────────────────────────────────────────
   const sortiertT = [...trainings].sort((a, b) => a.datum > b.datum ? 1 : -1);
+  const sortierteGewichte = [...gewichte].sort((a, b) => a.datum > b.datum ? 1 : -1);
   const kraftCount   = trainings.filter(t => t.trainingstyp?.startsWith('kraft') || t.trainingstyp === 'ganzkoerper').length;
   const laufCount    = trainings.filter(t => t.trainingstyp === 'laufen').length;
   const hiitCount    = trainings.filter(t => t.trainingstyp === 'hiit').length;
   const gesamtDauer  = trainings.reduce((s, t) => s + (Number(t.dauer_min) || 0), 0);
-  const aktGewicht   = gewichte.length ? gewichte[gewichte.length - 1].gewicht_kg : '–';
-  const startGewicht = gewichte.length ? gewichte[0].gewicht_kg : null;
+  const aktGewicht   = sortierteGewichte.length ? sortierteGewichte[sortierteGewichte.length - 1].gewicht_kg : '–';
+  const startGewicht = sortierteGewichte.length ? sortierteGewichte[0].gewicht_kg : null;
   const gewichtDelta = startGewicht && aktGewicht !== '–' ? (aktGewicht - startGewicht).toFixed(1) : null;
 
   // ── Gewicht-Chart-Daten ──────────────────────────────────────────────────
-  const gewichtChart = [...gewichte]
-    .sort((a, b) => a.datum > b.datum ? 1 : -1)
+  const gewichtChart = [...sortierteGewichte]
     .map(g => ({ datum: formatDatum(g.datum), kg: Number(g.gewicht_kg) }));
 
   // ── Trainings pro Woche ──────────────────────────────────────────────────
@@ -76,6 +93,8 @@ export default function Auswertung() {
   // ── Bestleistungen ───────────────────────────────────────────────────────
   const bestMap = {};
   saetze.forEach(s => {
+    const meta = UEBUNG_META[s.uebung_id];
+    if (meta?.einheit !== 'kg') return;
     if (!s.gewicht_kg) return;
     const k = s.uebung_name;
     if (!bestMap[k] || Number(s.gewicht_kg) > Number(bestMap[k].gewicht_kg)) {
@@ -87,7 +106,7 @@ export default function Auswertung() {
   // ── Längste Laufzeit ────────────────────────────────────────────────────
   const laufSaetze = saetze.filter(s => ['gehen','joggen','laufen_10km','zone2'].includes(s.uebung_id));
   const besteZeit = laufSaetze.length
-    ? Math.max(...laufSaetze.map(s => Number(s.gewicht_kg) || Number(s.dauer_sek) || 0))
+    ? Math.max(...laufSaetze.map(s => getCardioMinuten(s)))
     : 0;
 
   // ── gefilterte Liste ─────────────────────────────────────────────────────
@@ -129,7 +148,7 @@ export default function Auswertung() {
           <div className="stat-label">⚡ HIIT</div>
         </div>
         <div className="stat-box">
-          <div className="stat-val" style={{ color: '#2E7D32' }}>{besteZeit > 0 ? `${besteZeit} Min` : '–'}</div>
+          <div className="stat-val" style={{ color: '#2E7D32' }}>{besteZeit > 0 ? `${besteZeit.toFixed(1).replace('.0', '')} Min` : '–'}</div>
           <div className="stat-label">🏃 Längste Laufzeit</div>
         </div>
       </div>

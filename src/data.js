@@ -195,3 +195,62 @@ export const TRAINING_TYPEN = [
   { id: 'aktiv',      label: '🌿 Aktive Erholung',          tag: 'Samstag' },
   { id: 'frei',       label: '💤 Ruhetag',                  tag: 'Sonntag' },
 ];
+
+export const TRAININGS_VORLAGEN = {
+  kraft_uk: {
+    dauer_min: 50,
+    hinweis: 'Unterkörper mit Fokus auf Grundübungen und kontrollierter Technik.',
+    uebungen: [
+      { id: 'kniebeuge', saetze: [{ wiederholungen: '5' }, { wiederholungen: '5' }, { wiederholungen: '5' }] },
+      { id: 'rum_kreuzheben', saetze: [{ wiederholungen: '8' }, { wiederholungen: '8' }, { wiederholungen: '8' }] },
+      { id: 'ausfallschritte', saetze: [{ wiederholungen: '10' }, { wiederholungen: '10' }] },
+      { id: 'wadenpressen', saetze: [{ wiederholungen: '15' }, { wiederholungen: '15' }] },
+    ],
+  },
+  hiit: {
+    dauer_min: 20,
+    hinweis: 'Kurz, intensiv, danach vollständig erholen.',
+    uebungen: [
+      { id: 'hiit', saetze: [{ wiederholungen: '10' }] },
+    ],
+  },
+  kraft_ok: {
+    dauer_min: 50,
+    hinweis: 'Oberkörper mit Druck- und Zugbewegungen im Gleichgewicht.',
+    uebungen: [
+      { id: 'bankdruecken', saetze: [{ wiederholungen: '5' }, { wiederholungen: '5' }, { wiederholungen: '5' }] },
+      { id: 'klimmzuege', saetze: [{ wiederholungen: '8' }, { wiederholungen: '8' }, { wiederholungen: '8' }] },
+      { id: 'schulterdruecken', saetze: [{ wiederholungen: '8' }, { wiederholungen: '8' }] },
+      { id: 'rudern', saetze: [{ wiederholungen: '10' }, { wiederholungen: '10' }] },
+    ],
+  },
+  laufen: {
+    dauer_min: 45,
+    hinweis: 'Locker genug bleiben, damit du sprechen kannst.',
+    uebungen: [
+      { id: 'zone2', saetze: [{ dauer_sek: '2700' }] },
+    ],
+  },
+  ganzkoerper: {
+    dauer_min: 55,
+    hinweis: 'Erst explosiv, dann schwer, dann stabilisieren.',
+    uebungen: [
+      { id: 'box_jumps', saetze: [{ wiederholungen: '5' }, { wiederholungen: '5' }, { wiederholungen: '5' }] },
+      { id: 'kreuzheben', saetze: [{ wiederholungen: '5' }, { wiederholungen: '5' }, { wiederholungen: '5' }] },
+      { id: 'kb_swing', saetze: [{ wiederholungen: '10' }, { wiederholungen: '10' }, { wiederholungen: '10' }] },
+      { id: 'plank', saetze: [{ dauer_sek: '45' }, { dauer_sek: '45' }, { dauer_sek: '45' }] },
+    ],
+  },
+  aktiv: {
+    dauer_min: 30,
+    hinweis: 'Aktive Regeneration ohne hohe Intensität.',
+    uebungen: [
+      { id: 'gehen', saetze: [{ dauer_sek: '1800' }] },
+    ],
+  },
+  frei: {
+    dauer_min: '',
+    hinweis: 'Ruhetag. Nur dokumentieren, wenn du bewusst Pause gemacht hast.',
+    uebungen: [],
+  },
+};

@@ -12,6 +12,73 @@ const GALPIN_TIPPS = [
   { titel: 'HIIT Frequenz', text: 'Max. 1-2x pro Woche HIIT. Mehr ist kontraproduktiv für Fettabbau. Qualität > Quantität.', emoji: '⚡' },
 ];
 
+const FAQS = [
+  {
+    keywords: ['protein', 'eiweiss', 'eiweiß'],
+    antwort: 'Peile täglich etwa 1,6 bis 2,0 g Protein pro kg Körpergewicht an. Verteile es auf 3 bis 4 Mahlzeiten und plane nach dem Training eine proteinreiche Mahlzeit ein. Für Muskelaufbau und Muskelerhalt mit 60+ ist Konstanz wichtiger als einzelne Shakes.',
+  },
+  {
+    keywords: ['schlaf', 'muede', 'müde', 'regeneration'],
+    antwort: '7 bis 8 Stunden Schlaf sind hier Pflicht. Wenn das Training schwer wirkt, obwohl das Gewicht gleich bleibt, ist oft Regeneration der limitierende Faktor. Dann Intensität kurz senken, Spaziergang statt HIIT und Schlaf priorisieren.',
+  },
+  {
+    keywords: ['knie', 'kniebeuge'],
+    antwort: 'Bei Knieschmerz zuerst Tiefe, Standbreite und Kontrolle prüfen. Oft hilft: langsamer absenken, Gewicht reduzieren, Knie sauber über den Fuß führen und vorübergehend Goblet Squats statt schwerer Langhantel. Schmerz unter Last nicht wegtrainieren.',
+  },
+  {
+    keywords: ['ruecken', 'rücken', 'kreuzheben'],
+    antwort: 'Bei Rückenbeschwerden Last senken und nur in der kontrollierbaren Bewegungsamplitude arbeiten. Neutraler Rücken, gespannter Bauch und sauberes Hip-Hinge-Muster sind wichtiger als Gewicht. Wenn Schmerz stechend ist: Training abbrechen und medizinisch abklären.',
+  },
+  {
+    keywords: ['zone 2', 'zone2', 'puls', 'ausdauer'],
+    antwort: 'Zone 2 bedeutet lockere Dauerarbeit bei etwa 60 bis 70 % der maximalen Herzfrequenz. In deinem Kontext ist Sprechtempo der beste Test: du solltest vollständige Sätze sprechen können. Lieber zu locker als zu hart.',
+  },
+  {
+    keywords: ['ajusco', 'hoehe', 'höhe'],
+    antwort: 'Am Ajusco ist die Höhe ein echter Leistungsfaktor. Laufe dort 15 bis 20 % langsamer als auf Meereshöhe und erhöhe Trinkmenge sowie Erholung. Der langsamere Pace ist physiologisch normal und kein Trainingsrückschritt.',
+  },
+  {
+    keywords: ['fettabbau', 'abnehmen', 'gewicht verlieren'],
+    antwort: 'Für Fettabbau wirken drei Dinge zusammen: leichtes Kaloriendefizit, genügend Protein und regelmäßige Zone-2-Einheiten plus Krafttraining. HIIT ist nur ein Zusatz, nicht die Basis. Wenn Gewicht stagniert, zuerst Ernährung und Alltagsbewegung prüfen.',
+  },
+  {
+    keywords: ['hiit', 'intervall'],
+    antwort: 'HIIT maximal 1 bis 2 Mal pro Woche. Es sollte kurz, hart und technisch sauber sein. Wenn deine Beine vom Krafttraining noch schwer sind, ist an diesem Tag Zone 2 meist die bessere Entscheidung.',
+  },
+];
+
+function normalizeText(text) {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function findeUebungsAntwort(frage) {
+  const normFrage = normalizeText(frage);
+  const match = ALLE_UEBUNGEN.find(ueb => {
+    const normName = normalizeText(ueb.name);
+    const normId = ueb.id.replace(/_/g, ' ');
+    return normFrage.includes(normName) || normFrage.includes(normId);
+  });
+
+  if (!match || !KI_HINWEISE[match.id]) return null;
+
+  const hinweis = KI_HINWEISE[match.id];
+  return `${match.name}: ${hinweis.ausfuehrung}\n\nWichtig für dich: ${hinweis.tipp}\n\nGalpin-Prinzip: ${hinweis.galpin}`;
+}
+
+function beantworteFrage(frage) {
+  const uebungsAntwort = findeUebungsAntwort(frage);
+  if (uebungsAntwort) return uebungsAntwort;
+
+  const normFrage = normalizeText(frage);
+  const faq = FAQS.find(eintrag => eintrag.keywords.some(keyword => normFrage.includes(keyword)));
+  if (faq) return faq.antwort;
+
+  return 'Ich beantworte Fragen hier lokal und ohne externen KI-Dienst. Frag am besten konkret nach Protein, Schlaf, Zone 2, HIIT, Fettabbau, Ajusco-Höhe oder nenne direkt eine Übung wie Kniebeuge, Kreuzheben oder Bankdrücken.';
+}
+
 export default function KiAssistent() {
   const [gewaehlt, setGewaehlt] = useState(null);
   const [frage, setFrage]       = useState('');
@@ -21,33 +88,12 @@ export default function KiAssistent() {
   const uebHinweis = gewaehlt ? KI_HINWEISE[gewaehlt] : null;
   const uebName = gewaehlt ? ALLE_UEBUNGEN.find(u => u.id === gewaehlt)?.name : '';
 
-  const fragenAn = async () => {
+  const fragenAn = () => {
     if (!frage.trim()) return;
     setLoading(true);
     setAntwort('');
-    try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          system: `Du bist ein persönlicher Fitness-Coach für Holger Grosser (60 Jahre, Deutschland/Mexico City).
-Holger folgt dem "Galpin × Ajusco 16-Wochen-Plan" (Krafttraining nach Dr. Andy Galpin + 10km Laufaufbau zum Ajusco-Berg).
-Ziele: Fettabbau, Kraft aufbauen, 10km laufen.
-Gib kurze, praktische Antworten auf Deutsch. Beziehe dich auf Galpins Prinzipien wenn relevant.
-Berücksichtige das Alter (60+): Gelenkschutz, Regeneration, Proteinbedarf wichtiger als bei Jüngeren.
-Halte Antworten unter 200 Wörter.`,
-          messages: [{ role: 'user', content: frage }]
-        })
-      });
-      const d = await res.json();
-      setAntwort(d.content?.[0]?.text || 'Keine Antwort erhalten.');
-    } catch (e) {
-      setAntwort('Fehler beim Laden: ' + e.message);
-    } finally {
-      setLoading(false);
-    }
+    setAntwort(beantworteFrage(frage));
+    setLoading(false);
   };
 
   return (
@@ -57,6 +103,9 @@ Halte Antworten unter 200 Wörter.`,
       {/* Frage an KI */}
       <div className="card">
         <div className="card-title">💬 Stell mir eine Frage</div>
+        <div className="field-help" style={{ marginBottom: '0.75rem' }}>
+          Lokaler Coachmodus aktiv. Die Antworten funktionieren jetzt ohne externen API-Schlüssel.
+        </div>
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
           <input
             type="text"

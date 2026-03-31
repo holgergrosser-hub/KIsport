@@ -13,6 +13,7 @@
 // 5. URL kopieren → in Netlify als VITE_GAS_URL Umgebungsvariable eintragen
 
 const SHEET_ID = 'DEIN_GOOGLE_SHEET_ID_HIER'; // ← HIER EINTRAGEN
+const SCRIPT_VERSION = '2026-03-31';
 
 // Sheet-Namen
 const SHEETS = {
@@ -22,35 +23,38 @@ const SHEETS = {
   STAMMDATEN:'Stammdaten',
 };
 
-// ── Initialisierung ───────────────────────────────────────────────────────────
-function initSheets() {
-  const ss = SpreadsheetApp.openById(SHEET_ID);
-  
-  // Training-Sheet
+function getSpreadsheet_() {
+  if (!SHEET_ID || SHEET_ID === 'DEIN_GOOGLE_SHEET_ID_HIER') {
+    throw new Error('SHEET_ID fehlt. Bitte trage oben im Apps Script die echte Google-Sheet-ID ein.');
+  }
+
+  return SpreadsheetApp.openById(SHEET_ID);
+}
+
+function ensureSheetsReady_() {
+  const ss = getSpreadsheet_();
+
   let sh = ss.getSheetByName(SHEETS.TRAINING);
   if (!sh) {
     sh = ss.insertSheet(SHEETS.TRAINING);
     sh.appendRow(['ID','Datum','Trainingstyp','Dauer_min','Notiz','Stimmung','Erstellt']);
     sh.setFrozenRows(1);
   }
-  
-  // Saetze-Sheet (Einzelübungen)
+
   sh = ss.getSheetByName(SHEETS.SAETZE);
   if (!sh) {
     sh = ss.insertSheet(SHEETS.SAETZE);
     sh.appendRow(['TrainingID','Uebung_ID','Uebung_Name','Satz_Nr','Gewicht_kg','Wiederholungen','Dauer_sek','Notiz']);
     sh.setFrozenRows(1);
   }
-  
-  // Gewicht-Sheet
+
   sh = ss.getSheetByName(SHEETS.GEWICHT);
   if (!sh) {
     sh = ss.insertSheet(SHEETS.GEWICHT);
     sh.appendRow(['Datum','Gewicht_kg','Notiz']);
     sh.setFrozenRows(1);
   }
-  
-  // Stammdaten-Sheet
+
   sh = ss.getSheetByName(SHEETS.STAMMDATEN);
   if (!sh) {
     sh = ss.insertSheet(SHEETS.STAMMDATEN);
@@ -62,8 +66,25 @@ function initSheets() {
     sh.appendRow(['Programmstart','']);
     sh.setFrozenRows(1);
   }
-  
+
+  return ss;
+}
+
+// ── Initialisierung ───────────────────────────────────────────────────────────
+function initSheets() {
+  ensureSheetsReady_();
   return '✅ Sheets initialisiert';
+}
+
+function getSetupStatus() {
+  const ss = ensureSheetsReady_();
+  return {
+    status: 'ok',
+    message: 'Fitness Tracker Backend läuft und Google Sheets ist erreichbar.',
+    version: SCRIPT_VERSION,
+    spreadsheetName: ss.getName(),
+    sheets: Object.values(SHEETS),
+  };
 }
 
 // ── CORS Helper ───────────────────────────────────────────────────────────────
@@ -79,7 +100,11 @@ function doGet(e) {
     const action = e.parameter.action || 'ping';
     
     if (action === 'ping') {
-      return jsonResponse({ status: 'ok', message: 'Fitness Tracker Backend läuft!' });
+      return jsonResponse(getSetupStatus());
+    }
+
+    if (action === 'setupStatus') {
+      return jsonResponse(getSetupStatus());
     }
     
     if (action === 'getLast60Days') {
@@ -139,7 +164,7 @@ function doPost(e) {
 
 // ── Training speichern ────────────────────────────────────────────────────────
 function saveTraining(data) {
-  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const ss = ensureSheetsReady_();
   const trainingSh = ss.getSheetByName(SHEETS.TRAINING);
   const saetzeSh   = ss.getSheetByName(SHEETS.SAETZE);
   
@@ -177,7 +202,7 @@ function saveTraining(data) {
 
 // ── Gewicht speichern ─────────────────────────────────────────────────────────
 function saveGewicht(data) {
-  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const ss = ensureSheetsReady_();
   const sh = ss.getSheetByName(SHEETS.GEWICHT);
   
   // Prüfen ob für dieses Datum schon ein Eintrag existiert
@@ -197,7 +222,7 @@ function saveGewicht(data) {
 
 // ── Letzte 60 Tage laden ──────────────────────────────────────────────────────
 function getLast60Days() {
-  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const ss = ensureSheetsReady_();
   const trainingSh = ss.getSheetByName(SHEETS.TRAINING);
   const saetzeSh   = ss.getSheetByName(SHEETS.SAETZE);
   const gewichtSh  = ss.getSheetByName(SHEETS.GEWICHT);
@@ -255,7 +280,7 @@ function getLast60Days() {
 
 // ── Training-Detail laden ─────────────────────────────────────────────────────
 function getTrainingDetail(trainingId) {
-  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const ss = ensureSheetsReady_();
   const saetzeSh = ss.getSheetByName(SHEETS.SAETZE);
   const rows = saetzeSh.getDataRange().getValues();
   const saetze = [];
@@ -277,7 +302,7 @@ function getTrainingDetail(trainingId) {
 
 // ── Gewicht-History laden ─────────────────────────────────────────────────────
 function getGewichtHistory() {
-  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const ss = ensureSheetsReady_();
   const sh = ss.getSheetByName(SHEETS.GEWICHT);
   const rows = sh.getDataRange().getValues();
   const gewichte = rows.slice(1).map(r => ({
@@ -288,7 +313,7 @@ function getGewichtHistory() {
 
 // ── Training löschen ──────────────────────────────────────────────────────────
 function deleteTraining(trainingId) {
-  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const ss = ensureSheetsReady_();
   
   // Training-Row löschen
   const tSh = ss.getSheetByName(SHEETS.TRAINING);

@@ -39,6 +39,13 @@
 4. **Bereitstellen** klicken → Berechtigungen erlauben
 5. **Die neue URL kopieren!** (sieht aus wie: `https://script.google.com/macros/s/ABC.../exec`)
 
+### 1.5 Verbindung direkt in der App testen
+1. Öffne die App im Browser
+2. Im Tab **Erfassen** oben die Karte **Google Sheets Verbindung** nutzen
+3. Die Web-App-URL einfügen
+4. **Speichern + testen** klicken
+5. Erst wenn dort grün **verbunden** erscheint, mit Eingaben starten
+
 ---
 
 ## Schritt 2: GitHub Repository erstellen
@@ -84,6 +91,9 @@ git push -u origin main
    - **Value:** Deine Apps Script URL von Schritt 1.4
 3. **Save** klicken
 4. **Deploys → Trigger deploy** (damit die Variable aktiv wird)
+
+Alternative:
+Wenn du keinen neuen Deploy machen willst, kannst du die Web-App-URL direkt in der App im Bereich **Google Sheets Verbindung** speichern. Die URL wird dann lokal im Browser verwendet.
 
 ### 3.3 Fertig!
 Deine App ist jetzt unter der Netlify-URL erreichbar, z.B.:
@@ -131,10 +141,11 @@ Deine App ist jetzt unter der Netlify-URL erreichbar, z.B.:
 
 | Problem | Lösung |
 |---------|--------|
-| "Backend nicht verbunden" | GAS_URL in Netlify env vars prüfen |
+| "Backend nicht verbunden" | Web-App-URL in der App testen oder `VITE_GAS_URL` prüfen |
 | Daten werden nicht gespeichert | Apps Script neu deployen, neue URL eintragen |
 | Build-Fehler auf Netlify | `npm install && npm run build` in netlify.toml prüfen |
 | CORS-Fehler | Apps Script muss als "Jeder" zugänglich sein |
+| `SHEET_ID fehlt` | Im Apps Script oben die echte Sheet-ID eintragen |
 
 ---
 
